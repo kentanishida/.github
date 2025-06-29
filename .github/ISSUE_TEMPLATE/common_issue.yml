@@ -1,0 +1,55 @@
+name: Issue
+description: バグ報告・機能要求・タスクの共通テンプレート
+title: "[種類] 簡潔なタイトル"
+body:
+  - type: textarea
+    id: labels_instruction
+    attributes:
+      label: ラベル設定指示
+      description: |
+        **このIssue作成後に以下のラベルを手動で設定してください:**
+
+        **優先度ラベル（必須）:**
+        - priority-1 (最低優先度) 〜 priority-7 (最高優先度)
+      placeholder: |
+        例：priority-7（高優先度）
+      render: markdown
+  - type: textarea
+    id: description
+    attributes:
+      label: 説明
+      description: 詳細な説明を記載してください
+      placeholder: |
+        バグ報告: 何が起きているか、再現手順、期待される動作
+        機能要求: どのような機能が欲しいか、解決したい課題、実装案
+        タスク: 実行したいタスクの内容、受け入れ条件
+        ドキュメント: 作成・更新が必要なドキュメント、目的
+        調査: 調査したい内容、背景、期待する成果
+    validations:
+      required: true
+  - type: textarea
+    id: prerequisites
+    attributes:
+      label: 前提条件
+      description: このIssueを開始する前に完了必須の他のIssueがあれば記載してください
+      placeholder: |
+        #123 (ログイン機能実装)
+        #456 (データベース設計)
+        なし（他のIssueに依存しない場合）
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 制約
+      description: 実装時の制約や条件があれば記載してください
+      placeholder: 例：特定のライブラリを使用、既存のコードを参考に実装、パフォーマンス要件、セキュリティ制約など
+  - type: textarea
+    id: completion_checklist
+    attributes:
+      label: 完了チェックリスト
+      description: このIssueが完了したとみなされる条件をチェックボックス形式で記載してください
+      placeholder: |
+        - [ ] 実装完了
+        - [ ] テスト実行・通過
+        - [ ] コードレビュー完了
+        - [ ] master向けPR作成・マージ
+        - [ ] 動作確認完了
