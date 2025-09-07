@@ -1,55 +1,67 @@
 name: Issue
-description: バグ報告・機能要求・タスクの共通テンプレート
-title: "[種類] 簡潔なタイトル"
+description: 共通テンプレート（タイトル / ラベル / 背景 / 何をするのか / どうやってやるのか）
+title: "[タイトル]"
 body:
   - type: textarea
-    id: labels_instruction
+    id: labels
     attributes:
-      label: ラベル設定指示
+      label: ラベル
       description: |
-        **このIssue作成後に以下のラベルを手動で設定してください:**
-
-        **優先度ラベル（必須）:**
-        - priority-1 (最低優先度) 〜 priority-7 (最高優先度)
+        このIssueに付与すべきラベルを記載してください。優先度のラベルは必須です。
+        - 優先度 (必須): priority-1 (低) 〜 priority-7 (高)
       placeholder: |
-        例：priority-7（高優先度）
-      render: markdown
-  - type: textarea
-    id: description
-    attributes:
-      label: 説明
-      description: 詳細な説明を記載してください
-      placeholder: |
-        バグ報告: 何が起きているか、再現手順、期待される動作
-        機能要求: どのような機能が欲しいか、解決したい課題、実装案
-        タスク: 実行したいタスクの内容、受け入れ条件
-        ドキュメント: 作成・更新が必要なドキュメント、目的
-        調査: 調査したい内容、背景、期待する成果
+        - priority-5
     validations:
       required: true
+
   - type: textarea
-    id: prerequisites
+    id: background
     attributes:
-      label: 前提条件
-      description: このIssueを開始する前に完了必須の他のIssueがあれば記載してください
+      label: 背景
+      description: なぜこのIssueが必要か（課題・発生状況・ビジネス/ユーザー影響など）
       placeholder: |
-        #123 (ログイン機能実装)
-        #456 (データベース設計)
-        なし（他のIssueに依存しない場合）
+        例：
+        現在〇〇機能で△△な問題が発生しており、ユーザーが□□できない。売上やUXに⭐︎⭐︎な影響があるため対応が必要。
+    validations:
+      required: true
+
   - type: textarea
-    id: constraints
+    id: what
     attributes:
-      label: 制約
-      description: 実装時の制約や条件があれば記載してください
-      placeholder: 例：特定のライブラリを使用、既存のコードを参考に実装、パフォーマンス要件、セキュリティ制約など
-  - type: textarea
-    id: completion_checklist
-    attributes:
-      label: 完了チェックリスト
-      description: このIssueが完了したとみなされる条件をチェックボックス形式で記載してください
+      label: 何をするのか
+      description: このIssueで完了すべき成果物・スコープ・アウトカムを明確にしてください
       placeholder: |
-        - [ ] 実装完了
-        - [ ] テスト実行・通過
-        - [ ] コードレビュー完了
-        - [ ] master向けPR作成・マージ
-        - [ ] 動作確認完了
+        例：
+        - 新しいAPIエンドポイント /v1/xxx を追加し△△のデータを返せるようにする
+        - 画面AでBの状態を表示できる
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: このIssueが完了と判断できる客観的な条件（受け入れ基準 / 検証方法）
+      placeholder: |
+        例：
+        - [ ] テストが通る
+        - [ ] APIが期待通りのレスポンス（200 / 想定JSON構造）を返す
+        - [ ] UIで○○が表示される
+        - [ ] エラーログが出力されない
+        - [ ] ドキュメント（README / ADR）が更新されている
+    validations:
+      required: true
+
+  - type: textarea
+    id: how
+    attributes:
+      label: どうやってやるのか
+      description: 想定アプローチ、分解タスクなど
+      placeholder: |
+        例：
+        - [ ] モデルを拡張する
+        - [ ] マイグレーションを行う
+        - [ ] 〇〇entity を作る
+        - [ ] △△client に〇〇を作る
+        - [ ] useCase を作る
+      render: markdown
