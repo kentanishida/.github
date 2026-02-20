@@ -1,5 +1,5 @@
 name: Issue
-description: 共通テンプレート（タイトル / ラベル / 背景 / 何をするのか / どうやってやるのか）
+description: 共通テンプレート（タイトル / ラベル / 背景 / 何をするのか / 代替案の検討 / 採用理由 / どうやってやるのか）
 title: "[タイトル]"
 body:
   - type: textarea
@@ -53,10 +53,41 @@ body:
       required: true
 
   - type: textarea
+    id: alternatives
+    attributes:
+      label: 代替案の検討
+      description: |
+        検討した手法を比較してください。1つしか思いつかない場合でも「他に方法はないか」を考えることで、選択の質が上がります。
+      placeholder: |
+        例：
+        | 手法 | メリット | デメリット |
+        |------|---------|-----------|
+        | A: axios + keepAlive | 既存コードの変更が少ない | axios 依存が残る |
+        | B: fetch API に移行 | Node.js 標準で依存なし | 全HTTPクライアントの書き換えが必要 |
+        | C: undici | 高パフォーマンス | 学習コストがある |
+      render: markdown
+    validations:
+      required: true
+
+  - type: textarea
+    id: decision
+    attributes:
+      label: 採用理由
+      description: |
+        上記の代替案のうち、どれを採用し、なぜその判断に至ったかを記載してください。
+        判断の根拠（技術的制約、コスト、チーム状況など）があると、後から見返したときに有用です。
+      placeholder: |
+        例：
+        手法Aを採用する。理由は、既存コードへの影響が最小限で、現時点のトラフィック規模では十分な性能が得られるため。
+        手法Bは将来的に検討するが、現フェーズでは移行コストが見合わない。
+    validations:
+      required: true
+
+  - type: textarea
     id: how
     attributes:
       label: どうやってやるのか
-      description: 想定アプローチ、分解タスクなど
+      description: 採用した手法の具体的な実装アプローチ、分解タスクなど
       placeholder: |
         例：
         - [ ] モデルを拡張する
