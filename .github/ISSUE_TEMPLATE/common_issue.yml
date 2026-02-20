@@ -1,5 +1,5 @@
 name: Issue
-description: 共通テンプレート（タイトル / ラベル / 背景 / 何をするのか / どうやってやるのか）
+description: 共通テンプレート
 title: "[タイトル]"
 body:
   - type: textarea
@@ -9,6 +9,7 @@ body:
       description: |
         このIssueに付与すべきラベルを記載してください。優先度のラベルは必須です。
         - 優先度 (必須): priority-1 (低) 〜 priority-7 (高)
+          - 目安: 1〜2 = いつか対応, 3〜4 = 今月中に対応, 5〜6 = 今週中に対応, 7 = 即時対応
       placeholder: |
         - priority-5
     validations:
@@ -17,51 +18,68 @@ body:
   - type: textarea
     id: background
     attributes:
-      label: 背景
-      description: なぜこのIssueが必要か（課題・発生状況・ビジネス/ユーザー影響など）
+      label: 課題感
+      description: |
+        なぜこのIssueが必要か（課題・発生状況など）を記載してください。
       placeholder: |
         例：
-        現在〇〇機能で△△な問題が発生しており、ユーザーが□□できない。売上やUXに⭐︎⭐︎な影響があるため対応が必要。
+        現在〇〇機能で△△な問題が発生しており、ユーザーが□□できない。
     validations:
       required: true
 
   - type: textarea
-    id: what
+    id: alternatives
     attributes:
-      label: 何をするのか
-      description: このIssueで完了すべき成果物・スコープ・アウトカムを明確にしてください
+      label: 実行案の検討
+      description: |
+        考えられる手法をそれぞれ詳細に記載してください。
+        1つしか思いつかない場合は1つだけでも構いません。ただし「他に方法はないか」を一度考えることで、選択の質が上がります。
+        下記のフォーマットに必ず従ってください。
       placeholder: |
-        例：
-        - 新しいAPIエンドポイント /v1/xxx を追加し△△のデータを返せるようにする
-        - 画面AでBの状態を表示できる
+        ## 手法A: （手法名を記載）
+
+        **概要:** 一文で手法の要点を記載
+
+        **詳細説明:**
+        なぜこの手法が有効か、背景や仕組みを初学者にもわかるように記載
+
+        **実際の実装方法:**
+        初学者にもわかるように書く
+
+        **メリット:**
+        - ...
+
+        **デメリット:**
+        - ...
+
+        **この手法の完了条件:**
+        - [ ] 条件1
+        - [ ] 条件2
+
+        ---
+
+        ## 手法B: （別の手法名を記載）
+
+        （手法A と同じ構成で記載）
     validations:
       required: true
 
   - type: textarea
-    id: acceptance
+    id: decision
     attributes:
-      label: 完了条件
-      description: このIssueが完了と判断できる客観的な条件（受け入れ基準 / 検証方法）
+      label: 最終的な決定とその理由
+      description: |
+        上記の手法のうち、どれを採用し、なぜその判断に至ったかを記載してください。
+        採用する手法に記載した完了条件が、この Issue 全体の完了条件になります。
+        判断の根拠はできるだけ細かく書いてください。
       placeholder: |
-        例：
-        - [ ] テストが通る
-        - [ ] APIが期待通りのレスポンス（200 / 想定JSON構造）を返す
-        - [ ] UIで○○が表示される
-        - [ ] エラーログが出力されない
-        - [ ] ドキュメント（README / ADR）が更新されている
+        **採用する手法:** 手法X（手法名）
+
+        **理由:**
+        判断の根拠を記載（技術的制約、コスト、チーム状況など）
+
+        **この Issue の完了条件（手法X の完了条件を採用）:**
+        - [ ] 条件1
+        - [ ] 条件2
     validations:
       required: true
-
-  - type: textarea
-    id: how
-    attributes:
-      label: どうやってやるのか
-      description: 想定アプローチ、分解タスクなど
-      placeholder: |
-        例：
-        - [ ] モデルを拡張する
-        - [ ] マイグレーションを行う
-        - [ ] 〇〇entity を作る
-        - [ ] △△client に〇〇を作る
-        - [ ] useCase を作る
-      render: markdown
