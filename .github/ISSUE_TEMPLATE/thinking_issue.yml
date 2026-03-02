@@ -1,0 +1,66 @@
+name: 検討 Issue
+description: まだ答えが出ていないことを整理・議論するためのテンプレート
+title: "[検討] ここに検討するタイトルを書く（疑問形で書く）"
+body:
+  - type: textarea
+    id: labels
+    attributes:
+      label: ラベル
+      description: |
+        この Issue に付与すべきラベルを書く。優先度のラベルは必須。
+        - 優先度 (必須): priority-1 (低) 〜 priority-7 (高)
+        - discussion（検討・議論が必要な場合）
+      placeholder: |
+        - priority-3
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 背景・動機
+      description: なぜ考えたいと思ったのかを書く
+      placeholder: |
+        例：
+        はてぶを毎日見ているが時間がかかりすぎる。もっと楽に情報を集められる方法がありそう。
+    validations:
+      required: true
+
+  - type: textarea
+    id: constraints
+    attributes:
+      label: 制約条件
+      description: 必ず守ってほしいことと、できれば守ってほしいことを書く。なければ「なし」と書く
+      placeholder: |
+        例：
+        - 予算はなるべく抑えること
+        - 技術的にはWebアプリが現実的なこと
+        - 1日30分以内で運用できること
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: この issue で達成したいこと
+      description: この issue を閉じるとき、どういう状態になっていればいいかを書く
+      placeholder: |
+        例：
+        - ネクストアクションが決まっている状態
+        - 3つ以上の選択肢が出揃っていて、比較できる状態
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-thoughts
+    attributes:
+      label: 現時点の考え・仮説
+      description: まとまっていなくてOK。思いついていることがあれば書く
+      placeholder: |
+        例：
+        - SlackにRSSを流すのが一番楽そう
+        - でもアプリ化した方が続くかも
+        - ChatGPTで要約させる手もある
+      render: markdown
+    validations:
+      required: false
