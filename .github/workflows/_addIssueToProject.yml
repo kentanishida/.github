@@ -23,6 +23,7 @@ jobs:
             exit 1
           fi
 
+          # 現在は kentanishida/free-pjt のプロジェクト管理のみで使用しているためハードコードで運用。他リポ展開時に inputs 化を検討する
           echo "Validating project access..."
           if ! validation=$(gh api graphql -f query='
             query {
@@ -51,6 +52,7 @@ jobs:
           fi
 
           actual_project_id=$(echo "$validation" | jq -r '.data.user.projectV2.id')
+          # 現在は kentanishida/free-pjt のプロジェクト管理のみで使用しているためハードコードで運用。他リポ展開時に inputs 化を検討する
           expected_project_id="PVT_kwHOBUR8Xc4A8hFH"
           if [ "$actual_project_id" != "$expected_project_id" ]; then
             echo "::error::Project ID mismatch. Expected: $expected_project_id, Got: $actual_project_id"
@@ -61,6 +63,7 @@ jobs:
           echo "Validated project: $project_title ($actual_project_id)"
           echo "project_id=$actual_project_id" >> "$GITHUB_OUTPUT"
 
+          # 現在は kentanishida/free-pjt のプロジェクト管理のみで使用しているためハードコードで運用。他リポ展開時に inputs 化を検討する
           echo "Getting existing project items (all pages)..."
           if ! existing_issues_raw=$(gh api graphql --paginate -f query='
             query($endCursor: String) {
