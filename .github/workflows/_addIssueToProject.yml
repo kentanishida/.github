@@ -96,8 +96,9 @@ jobs:
             echo "::warning::Raw project items data was non-empty but no valid issue numbers were extracted. Raw (first 500 chars): ${existing_issues_raw:0:500}"
           fi
 
+          # gh issue list はローカルの git リポジトリからリポジトリを推定するため、checkout なしでは --repo の指定が必要
           echo "Getting all open issues..."
-          if ! all_issues_raw=$(gh issue list --state open --json number --limit 10000 2>&1); then
+          if ! all_issues_raw=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --json number --limit 10000 2>&1); then
             echo "::error::Failed to fetch open issues. Response: $all_issues_raw"
             exit 1
           fi
