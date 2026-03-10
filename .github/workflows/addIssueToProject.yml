@@ -1,0 +1,12 @@
+name: addIssueToProject
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 14 * * *'
+
+jobs:
+  add-issues:
+    uses: ./.github/workflows/_addIssueToProject.yml
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
