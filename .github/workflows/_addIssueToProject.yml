@@ -92,7 +92,7 @@ jobs:
           existing_issues=$(echo "$existing_issues_raw" \
             | awk 'NF' \
             | { grep -E '^[0-9]+$' || true; } \
-            | sort -n \
+            | sort \
             | uniq)
 
           if [ -z "$existing_issues" ] && [ -n "$existing_issues_raw" ]; then
@@ -109,7 +109,7 @@ jobs:
             | jq -r '.[].number' \
             | awk 'NF' \
             | { grep -E '^[0-9]+$' || true; } \
-            | sort -n \
+            | sort \
             | uniq)
 
           if [ -z "$all_issues" ]; then
@@ -122,8 +122,8 @@ jobs:
           echo "Debug - existing_issues count: $(echo "$existing_issues" | { grep -c . || echo 0; })"
 
           if [ -n "$all_issues" ] && [ -n "$existing_issues" ]; then
-            echo "$all_issues" | tr ' ' '\n' | { grep -E '^[0-9]+$' || true; } | sort -n > /tmp/all_issues_sorted
-            echo "$existing_issues" | tr ' ' '\n' | { grep -E '^[0-9]+$' || true; } | sort -n > /tmp/existing_issues_sorted
+            echo "$all_issues" | tr ' ' '\n' | { grep -E '^[0-9]+$' || true; } | sort > /tmp/all_issues_sorted
+            echo "$existing_issues" | tr ' ' '\n' | { grep -E '^[0-9]+$' || true; } | sort > /tmp/existing_issues_sorted
             missing_issues=$(comm -23 /tmp/all_issues_sorted /tmp/existing_issues_sorted | tr '\n' ' ' | xargs)
           elif [ -n "$all_issues" ] && [ -z "$existing_issues" ]; then
             missing_issues=$(echo "$all_issues" | tr '\n' ' ' | xargs)
