@@ -161,15 +161,46 @@ jobs:
 
             echo "Adding issue #$issue_number to project..."
 
-            if ! content_id_response=$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number" --jq '.node_id' 2>&1); then
-              echo "::warning::Failed to get node_id for issue #$issue_number. API response: $content_id_response"
-              failed_count=$((failed_count + 1))
-              sleep 1
-              continue
-            fi
+            content_id_response=""
+            max_attempts=3
+            for attempt in $(seq 1 $max_attempts); do
+              raw_response=$(gh api "repos/$GITHUB_REPOSITORY/issues/$issue_number" --include 2>&1) || true
 
-            if [ -z "$content_id_response" ]; then
-              echo "::warning::Empty node_id returned for issue #$issue_number. Skipping."
+              if echo "$raw_response" | head -1 | grep -q '^HTTP/'; then
+                status_code=$(echo "$raw_response" | head -1 | awk '{print $2}' | tr -d '\r')
+                response_body=$(echo "$raw_response" | sed '1,/^[[:space:]]*$/d')
+              else
+                echo "::warning::No HTTP response received for issue #$issue_number. Attempt $attempt/$max_attempts. Raw output (first 500 chars): ${raw_response:0:500}"
+                status_code=""
+                response_body=""
+                if [ "$attempt" -lt "$max_attempts" ]; then
+                  sleep $((attempt * 5))
+                fi
+                continue
+              fi
+
+              if [ "$status_code" = "200" ]; then
+                content_id_response=$(echo "$response_body" | jq -r '.node_id' 2>/dev/null)
+                break
+              else
+                if [ "$status_code" = "429" ] || [ "$status_code" = "403" ]; then
+                  warn_prefix="Forbidden or rate limited"
+                else
+                  warn_prefix="Unexpected status"
+                fi
+                echo "::warning::${warn_prefix} (HTTP $status_code) for issue #$issue_number. Attempt $attempt/$max_attempts."
+                echo "::warning::Response body (first 500 chars): ${response_body:0:500}"
+                if echo "$status_code" | grep -qE '^4[0-9][0-9]$' && [ "$status_code" != "429" ] && [ "$status_code" != "403" ]; then
+                  break
+                fi
+                if [ "$attempt" -lt "$max_attempts" ]; then
+                  sleep $((attempt * 5))
+                fi
+              fi
+            done
+
+            if [ -z "$content_id_response" ] || [ "$content_id_response" = "null" ]; then
+              echo "::warning::Failed to get node_id for issue #$issue_number after $max_attempts attempts. Last HTTP status: $status_code"
               failed_count=$((failed_count + 1))
               sleep 1
               continue
