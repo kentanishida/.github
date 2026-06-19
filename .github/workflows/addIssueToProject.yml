@@ -2,11 +2,15 @@ name: addIssueToProject
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 14 * * *'
+  # GH_PAT 廃止作業中は実処理を停止しているため、無駄な定期実行を止める（復旧時に解除）
+  # schedule:
+  #   - cron: '0 14 * * *'
 
 jobs:
   add-issues:
     uses: ./.github/workflows/_addIssueToProject.yml
-    secrets:
-      GH_PAT: ${{ secrets.GH_PAT }}
+    # GH_PAT 廃止作業中は受け渡しを停止。受け取り側（_addIssueToProject.yml）が
+    # GH_PAT を宣言していない現状でここから渡すと secret 不整合で定義エラーになる。
+    # 復旧時はこの secrets ブロックと受け取り側の secrets 宣言を必ずセットで戻すこと（詳細は _addIssueToProject.yml 冒頭）。
+    # secrets:
+    #   GH_PAT: ${{ secrets.GH_PAT }}
