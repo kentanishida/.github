@@ -17,7 +17,10 @@ on:
         type: string
         required: true
 
-# 外部 API への送信のみを行い GITHUB_TOKEN を使用しないため、呼び出し元から継承する権限を全て落とす
+# 外部 API への送信のみを行い GITHUB_TOKEN を使用しないため、呼び出し元から継承する権限を全て落とす。
+# 呼び出し元（free-pjt の中継ワークフロー）も permissions: {} で上限をゼロに固定しているため、
+# GITHUB_TOKEN を要する処理（actions/checkout、GitHub API 呼び出しなど）をここへ追加すると
+# 権限の要求が上限を超え、呼び出し元を変更していなくても全ての呼び出し箇所が定義エラーになる
 permissions: {}
 
 jobs:
