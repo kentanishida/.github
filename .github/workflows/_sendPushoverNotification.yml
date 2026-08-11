@@ -1,0 +1,40 @@
+name: sendPushoverNotification
+
+# 複数リポジトリの CI から同一の Pushover 通知処理を呼べるようにするため、実体をこの共通リポジトリ側に置いている。
+# 認証情報は呼び出し元リポジトリの secrets から明示的に受け取る設計とし、この公開リポジトリには一切保持させない。
+on:
+  workflow_call:
+    secrets:
+      PUSHOVER_API_TOKEN:
+        required: true
+      PUSHOVER_USER_OR_GROUP_KEY:
+        required: true
+    inputs:
+      messageTitle:
+        type: string
+        required: true
+      messageText:
+        type: string
+        required: true
+
+# 外部 API への送信のみを行い GITHUB_TOKEN を使用しないため、呼び出し元から継承する権限を全て落とす
+permissions: {}
+
+jobs:
+  send:
+    # ランナーは run を開始したリポジトリの文脈でのみ解決されるため、Ubicloud 導入済みリポジトリから呼ばれる前提のラベルを指定している
+    runs-on: ubicloud-standard-2-ubuntu-2404
+    # 通知は数秒で終わる処理であり、応答が返らない場合にランナーを占有し続けないよう上限を設ける
+    timeout-minutes: 5
+    steps:
+      # Pushover の REST API /1/messages.json へ token・user・title・message を JSON で POST し、通知を 1 件送信する
+      - name: Send Pushover notification
+        run: |
+          curl -X POST https://api.pushover.net/1/messages.json \
+            -H "Content-Type: application/json" \
+            -d '{
+              "token": "${{ secrets.PUSHOVER_API_TOKEN }}",
+              "user": "${{ secrets.PUSHOVER_USER_OR_GROUP_KEY }}",
+              "title": "${{ inputs.messageTitle }}",
+              "message": "${{ inputs.messageText }}"
+            }'
