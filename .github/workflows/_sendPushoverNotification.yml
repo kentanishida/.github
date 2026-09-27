@@ -30,14 +30,34 @@ jobs:
     # 通知は数秒で終わる処理であり、応答が返らない場合にランナーを占有し続けないよう上限を設ける
     timeout-minutes: 5
     steps:
-      # Pushover の REST API /1/messages.json へ token・user・title・message を JSON で POST し、通知を 1 件送信する
+      # Pushover の REST API /1/messages.json へ token・user・title・message を POST し、通知を 1 件送信する。
+      # inputs と secrets は run のスクリプトへ式で直接書かず、いったん環境変数に入れてから参照する
+      # （GitHub の Secure use reference が、信頼できない入力の受け方として推奨する方式）。
+      # 変更前の実装は式を run に直接書いて JSON を組み立てていたため、改行や " を含む本文は JSON の構文を壊して
+      # Pushover に HTTP 400 で拒否され、' を含む本文はシェルの引用を抜けてコマンドとして実行されうる状態だった。
+      # 値は --data-urlencode に「名前=値」の形で渡し、Pushover の文書が受け付ける形式として挙げる percent-encoding で送る。
+      # curl は最初の = より後ろを加工せずに符号化するため、改行や記号を含む値もそのまま届く。
+      # 呼び出し元でエスケープしてはならない（エスケープに使った \ などの文字がそのまま通知に表示される）。
+      # token と user key は --variable で curl に環境変数から直接読ませ、値をコマンドライン引数に載せない（プロセス一覧に出さないため）。
+      # {{...}} を展開する --expand- はこの 2 つにだけ付け、title と message の中に {{...}} があっても展開されないようにしている。
+      # --silent は進捗表示を消し、--show-error は接続の失敗など curl 自身のエラーを log に残す。
+      # --fail-with-body は HTTP 400 以上（入力の誤り・月間上限の超過・Pushover 側の障害）で exit 22 にしてジョブを失敗させ、応答本文を log に残す。
+      # これにより、Pushover に受け付けられなかったことが呼び出し元の run の失敗として見えるようになる。
+      # --connect-timeout と --max-time は応答の無い接続を打ち切る。--retry は一時的な失敗（タイムアウトと HTTP 408・429・5xx）だけを
+      # 5 秒あけて 2 回まで送り直し、それ以外の 4xx は送り直さない。Pushover は入力の誤りを同じ要求のまま再送しないよう求めている。
       - name: Send Pushover notification
+        env:
+          PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
+          PUSHOVER_USER_OR_GROUP_KEY: ${{ secrets.PUSHOVER_USER_OR_GROUP_KEY }}
+          MESSAGE_TITLE: ${{ inputs.messageTitle }}
+          MESSAGE_TEXT: ${{ inputs.messageText }}
         run: |
-          curl -X POST https://api.pushover.net/1/messages.json \
-            -H "Content-Type: application/json" \
-            -d '{
-              "token": "${{ secrets.PUSHOVER_API_TOKEN }}",
-              "user": "${{ secrets.PUSHOVER_USER_OR_GROUP_KEY }}",
-              "title": "${{ inputs.messageTitle }}",
-              "message": "${{ inputs.messageText }}"
-            }'
+          curl --silent --show-error --fail-with-body \
+            --connect-timeout 10 --max-time 30 --retry 2 --retry-delay 5 \
+            --variable %PUSHOVER_API_TOKEN \
+            --variable %PUSHOVER_USER_OR_GROUP_KEY \
+            --expand-data-urlencode "token={{PUSHOVER_API_TOKEN}}" \
+            --expand-data-urlencode "user={{PUSHOVER_USER_OR_GROUP_KEY}}" \
+            --data-urlencode "title=${MESSAGE_TITLE}" \
+            --data-urlencode "message=${MESSAGE_TEXT}" \
+            https://api.pushover.net/1/messages.json
