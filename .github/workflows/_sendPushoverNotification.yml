@@ -49,14 +49,41 @@ jobs:
         # curl は JSON を標準入力から読む（--data-binary @-）。標準入力へ書く printf は bash の組み込みコマンドで、値を引数として別のプログラムへ渡さない。
         # これにより token と user key は、どのプロセスのコマンドライン引数にも載らない
         # （https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets）。
-        # secrets が空の場合（Dependabot が起点の run で、呼び出し元の Dependabot secrets に値が無いときなど）も、空文字のまま送られて Pushover に拒否される。
+        # secrets が空の場合（Dependabot が起点の run で、呼び出し元の Dependabot secrets に値が無いときなど）も、空文字のまま送られて Pushover に拒否され、
+        # 下の判定で step が失敗する。空のときに送らずに成功させる作りにはしない（届かない状態を正常終了として扱い続けることになるため）。
         # JSON は、送る前に組み立てて変数に入れる。shell を指定しない run は bash -e で動くため、jq が失敗した場合は、送る前に step が失敗する。
         # jq は runs-on のランナーイメージ（Ubuntu 24.04）に入っている。
         # Content-Type: application/json は、Pushover が本文の形式を Content-Type で判断するため付ける（付けないと curl は application/x-www-form-urlencoded として送る）。
-        # HTTP のエラー応答（Pushover が受け付けなかった 4xx と、Pushover 側の一時的な問題の 5xx）でも curl は終了コード 0 で終わるため、
-        # ジョブは成功扱いのまま、応答本文だけが log に残る。Pushover との通信でジョブが失敗するのは、応答を最後まで受け取れなかった場合
-        # （名前解決や接続ができない、応答が途中で切れるなど）。応答が返らないまま止まった場合は、timeout-minutes の 5 分でジョブが取り消される（cancelled）。
+        # 通知が受け付けられなかったことに呼び出し元の run の failure で気づけるよう、Pushover に受け付けられたことを確かめられない場合は step を失敗させる。
+        # Pushover の文書（https://pushover.net/api#friendly）は、HTTP 4xx の応答か、応答本文の status が 1 以外なら、入力の誤りや月の上限超過などで受け付けていないとし、
+        # HTTP 5xx などの応答や、応答が無い場合を、Pushover 側の一時的な問題としている。status が 1 で分かるのは受け付けられたことまでで、端末に届いたかは確かめない。
+        # --fail-with-body は、HTTP 400 以上の応答で終了コードを 22 にしつつ、応答本文を出力する。
+        # HTTP 400 未満の応答は jq で status を調べ、1 でなければ（本文が JSON でない・空の場合も）失敗させる。
+        # --max-time 60 は、応答が返らないまま止まった場合に、ジョブの timeout-minutes（5 分）で取り消される（cancelled）より先に curl を終了コード 28 で終わらせ、
+        # step の失敗として log に残すために付ける。応答は通常数秒で返るため、60 秒は遅い応答を打ち切らないための余裕として取っている。
+        # --write-out は HTTP の状態コード（応答が無い場合は 000）を、応答本文と混ざらないよう標準エラー出力に出し、失敗の原因を log で見分けられるようにする。
+        # --no-progress-meter は進捗表示だけを消し、curl 自身のエラーは log に残す（--silent はエラーも消すため使わない）。
+        # bash -e のままでは curl が失敗した時点で止まり、応答本文を log に出せない。このため curl の終了コードを控えておき、
+        # 応答本文を出してから、::error:: の注釈を付けて失敗させる。
+        # 送り直しはしない。Pushover の文書は、4xx か status が 1 以外の要求は送り直しても通らないとし、4xx を繰り返す IP を一時的に遮断するとしている。
+        # 応答が無い場合は受け付けられていることもあり、送り直すと同じ通知が重なって届く。5xx は送り直してよいとされているが、
+        # 受け付けられなかったことに気づくという、この step の目的には送り直しが要らないため入れない。
+        # 5xx や応答が無い場合は、send ジョブを個別に再実行すれば送り直せる（応答が無かった場合は、端末に届いていないことを確かめてから行う。
+        # 呼び出し元でこのジョブに needs で依存するジョブも、再実行されうる）。
         run: |
           payload_built_before_sending=$(jq --null-input '{token: env.PUSHOVER_API_TOKEN, user: env.PUSHOVER_USER_OR_GROUP_KEY, title: env.MESSAGE_TITLE, message: env.MESSAGE_TEXT}')
-          printf '%s\n' "$payload_built_before_sending" |
-            curl --header "Content-Type: application/json" --data-binary @- https://api.pushover.net/1/messages.json
+          deferred_send_exit_code=0
+          response_body_to_log_and_check=$(
+            printf '%s\n' "$payload_built_before_sending" |
+              curl --no-progress-meter --fail-with-body --max-time 60 --write-out '%{stderr}HTTP status: %{response_code}\n' \
+                --header "Content-Type: application/json" --data-binary @- https://api.pushover.net/1/messages.json
+          ) || deferred_send_exit_code=$?
+          printf '%s\n' "$response_body_to_log_and_check"
+          if [ "$deferred_send_exit_code" -ne 0 ]; then
+            echo "::error::Pushover への送信で、curl が終了コード ${deferred_send_exit_code} で失敗しました。直前の curl のエラーと応答本文で原因を確かめてください"
+            exit "$deferred_send_exit_code"
+          fi
+          if ! jq --exit-status '.status == 1' <<<"$response_body_to_log_and_check" > /dev/null; then
+            echo "::error::Pushover の応答から、受け付けられたこと（status が 1）を確認できませんでした"
+            exit 1
+          fi
