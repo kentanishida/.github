@@ -19,9 +19,13 @@ kentanishida の全リポジトリで共通利用されるコミュニティヘ�
 Pushover へ通知を送ります。
 
 - inputs: `messageTitle`（必須）、`messageText`（必須）
+  - 値はそのまま Pushover へ送ります。改行・引用符・記号はエスケープせずに渡してください（エスケープに使った `\` などの文字が、そのまま通知に表示されます）
+    - YAML としての書き方は通常どおりです（単引用符の中の `'` は `''` と書く、複数行はブロック記法 `|` で書く、など）
+  - 長さの上限は [Pushover の仕様](https://pushover.net/api#limits)で、`messageTitle` が 250 文字、`messageText` が 1,024 文字です（バイト数ではなく文字数）。このワークフローは切り詰めないため、上限内で渡してください
 - secrets: `PUSHOVER_API_TOKEN`（必須）、`PUSHOVER_USER_OR_GROUP_KEY`（必須）
   - 認証情報は呼び出し元リポジトリの secrets から渡す設計で、本リポジトリには保持しません
 - 前提: `runs-on` に Ubicloud のランナーラベルを指定しています。ジョブは呼び出し元リポジトリの実行環境で解決されるため、Ubicloud を導入していないリポジトリから呼ぶとランナーが割り当てられません
+- 失敗時: Pushover に受け付けられなかった場合も、ジョブは成功扱いのままです。受け付けられたかは、send ジョブの log にある応答本文（`"status":1`）で確かめてください
 
 ### `_addIssueToProject.yml`
 

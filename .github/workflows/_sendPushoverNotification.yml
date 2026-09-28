@@ -32,12 +32,31 @@ jobs:
     steps:
       # Pushover の REST API /1/messages.json へ token・user・title・message を JSON で POST し、通知を 1 件送信する
       - name: Send Pushover notification
+        # inputs と secrets は run のスクリプトへ式（${{ }}）で直接書かず、env で環境変数に入れてから参照する
+        # （GitHub の Secure use reference が、インラインのスクリプトで信頼できない入力を扱う方法として推奨する方式。
+        #  https://docs.github.com/en/actions/reference/security/secure-use）。
+        # 式は、スクリプトがファイルに書き出される前に値そのものへ置き換わる。このため式をスクリプトへ直接書くと、値の改行や " や ' が
+        # シェルや JSON の構文として解釈され、JSON が壊れて Pushover に拒否されたり、引用を抜けた部分がコマンドとして実行されたりしうる。
+        # secrets を式で直接書いた場合は、その値もそのファイルに平文で書き出される。
+        env:
+          PUSHOVER_API_TOKEN: ${{ secrets.PUSHOVER_API_TOKEN }}
+          PUSHOVER_USER_OR_GROUP_KEY: ${{ secrets.PUSHOVER_USER_OR_GROUP_KEY }}
+          MESSAGE_TITLE: ${{ inputs.messageTitle }}
+          MESSAGE_TEXT: ${{ inputs.messageText }}
+        # jq が値を JSON の文字列として符号化するため、改行や記号を含む値もそのまま Pushover へ渡る。
+        # 呼び出し元でエスケープしてはならない（エスケープに使った \ などの文字が、そのまま通知に表示される）。
+        # GitHub の Using secrets が secret をコマンドライン引数で渡さないよう勧めているため、jq は値を --arg ではなく環境変数（env.名前）から読み、
+        # curl は JSON を標準入力から読む（--data-binary @-）。標準入力へ書く printf は bash の組み込みコマンドで、値を引数として別のプログラムへ渡さない。
+        # これにより token と user key は、どのプロセスのコマンドライン引数にも載らない
+        # （https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets）。
+        # secrets が空の場合（Dependabot が起点の run で、呼び出し元の Dependabot secrets に値が無いときなど）も、空文字のまま送られて Pushover に拒否される。
+        # JSON は、送る前に組み立てて変数に入れる。shell を指定しない run は bash -e で動くため、jq が失敗した場合は、送る前に step が失敗する。
+        # jq は runs-on のランナーイメージ（Ubuntu 24.04）に入っている。
+        # Content-Type: application/json は、Pushover が本文の形式を Content-Type で判断するため付ける（付けないと curl は application/x-www-form-urlencoded として送る）。
+        # HTTP のエラー応答（Pushover が受け付けなかった 4xx と、Pushover 側の一時的な問題の 5xx）でも curl は終了コード 0 で終わるため、
+        # ジョブは成功扱いのまま、応答本文だけが log に残る。Pushover との通信でジョブが失敗するのは、応答を最後まで受け取れなかった場合
+        # （名前解決や接続ができない、応答が途中で切れるなど）。応答が返らないまま止まった場合は、timeout-minutes の 5 分でジョブが取り消される（cancelled）。
         run: |
-          curl -X POST https://api.pushover.net/1/messages.json \
-            -H "Content-Type: application/json" \
-            -d '{
-              "token": "${{ secrets.PUSHOVER_API_TOKEN }}",
-              "user": "${{ secrets.PUSHOVER_USER_OR_GROUP_KEY }}",
-              "title": "${{ inputs.messageTitle }}",
-              "message": "${{ inputs.messageText }}"
-            }'
+          payload_built_before_sending=$(jq --null-input '{token: env.PUSHOVER_API_TOKEN, user: env.PUSHOVER_USER_OR_GROUP_KEY, title: env.MESSAGE_TITLE, message: env.MESSAGE_TEXT}')
+          printf '%s\n' "$payload_built_before_sending" |
+            curl --header "Content-Type: application/json" --data-binary @- https://api.pushover.net/1/messages.json
